@@ -94,7 +94,10 @@ a{ color:var(--sky-deep); text-underline-offset:3px; }
 @media (max-width: 760px){
   .tabbar{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:55; gap:2px;
     padding:6px max(8px, env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px, env(safe-area-inset-left,0px));
-    background:color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border-top:1px solid var(--line); }
+    background:var(--surface); border-top:1px solid var(--line-strong); box-shadow:0 -6px 18px -12px rgba(0,0,0,.25); transform:translateZ(0); }
+  html, body{ overscroll-behavior-y:none; }
+  html.typing .tabbar{ display:none; }
+  html.typing main.main{ padding-bottom:24px; }
   .tabbar button{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:52px; border:0; background:none; color:var(--ink-soft); font:700 .68rem var(--font-body); cursor:pointer; }
   .tabbar .tab-ic{ width:46px; height:30px; border-radius:999px; display:grid; place-items:center; transition:background .2s, transform .15s; }
   .tabbar button[aria-current="page"]{ color:var(--rose-deep); }
@@ -15369,6 +15372,22 @@ function App() {
   }), [bridgeVal]);
   const [showData, setShowData] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  /* hide the tab bar while the keyboard is up, so it doesn't ride up above it */
+  useEffect(() => {
+    const isField = el => el && el.matches && el.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]), textarea, [contenteditable="true"]');
+    const on = e => {
+      if (isField(e.target)) document.documentElement.classList.add('typing');
+    };
+    const off = () => setTimeout(() => {
+      if (!isField(document.activeElement)) document.documentElement.classList.remove('typing');
+    }, 60);
+    document.addEventListener('focusin', on);
+    document.addEventListener('focusout', off);
+    return () => {
+      document.removeEventListener('focusin', on);
+      document.removeEventListener('focusout', off);
+    };
+  }, []);
   const {
     status
   } = useContext(StoreCtx);
