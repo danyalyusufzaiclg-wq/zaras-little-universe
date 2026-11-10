@@ -89,24 +89,49 @@ a{ color:var(--sky-deep); text-underline-offset:3px; }
 .savedot{ display:flex; align-items:center; gap:6px; font-size:.74rem; color:var(--ink-soft); padding:4px 8px; border-radius:999px; background:var(--surface-2); white-space:nowrap; border:0; cursor:pointer; font-family:var(--font-body); }
 .savedot i{ width:7px; height:7px; border-radius:50%; background:var(--sage-deep); display:inline-block; }
 .savedot.warn i{ background:var(--rose-deep); }
-.bottomnav{ display:none; }
+.tabbar{ display:none; }
 @media (max-width: 1060px){ .nav{ display:none; } .top-tools{ margin-left:auto; } }
-@media (max-width: 1060px){
-  .bottomnav{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:55; justify-content:space-around; gap:2px;
-    padding:6px max(10px, env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px, env(safe-area-inset-left,0px));
-    background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-top:1px solid var(--line); }
-  .bottomnav button{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; border:0; background:none; color:var(--ink-soft); font:700 .6rem var(--font-body); padding:5px 1px; border-radius:12px; cursor:pointer; min-width:0; }
-  .bottomnav button span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-  .bottomnav button[aria-current="page"]{ color:var(--sage-deep); background:var(--sage-tint); }
+@media (max-width: 760px){
+  .tabbar{ display:flex; position:fixed; left:0; right:0; bottom:0; z-index:55; gap:2px;
+    padding:6px max(8px, env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px, env(safe-area-inset-left,0px));
+    background:color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border-top:1px solid var(--line); }
+  .tabbar button{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:52px; border:0; background:none; color:var(--ink-soft); font:700 .68rem var(--font-body); cursor:pointer; }
+  .tabbar .tab-ic{ width:46px; height:30px; border-radius:999px; display:grid; place-items:center; transition:background .2s, transform .15s; }
+  .tabbar button[aria-current="page"]{ color:var(--rose-deep); }
+  .tabbar button[aria-current="page"] .tab-ic{ background:var(--rose-tint); }
+  .tabbar button:active .tab-ic{ transform:scale(.88); }
+  main.main{ padding-top:18px; padding-bottom:calc(92px + env(safe-area-inset-bottom,0px)); }
+  footer.shell{ padding-bottom:calc(88px + env(safe-area-inset-bottom,0px)) !important; }
+  .toastbox{ bottom:calc(86px + env(safe-area-inset-bottom,0px)); }
+  .hide-phone{ display:none !important; }
+  .topbar-in{ padding-block:6px; }
+}
+.more-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+.more-item{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:14px; min-height:96px; border-radius:18px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); font:700 .95rem/1.2 var(--font-body); text-align:left; cursor:pointer; transition:transform .15s; }
+.more-item[aria-current="page"]{ border-color:var(--rose); background:var(--rose-tint); }
+.more-item .ri{ width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:var(--on-accent); }
+.more-item:active{ transform:scale(.96); }
+/* touch polish: no grey flash, no double-tap zoom, no text selection on controls, no zoom when typing */
+button, a, summary, [role="button"], [role="link"], [role="tab"], [role="radio"]{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+button, .btn, .chip, .tab, .tabbar{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+@media (pointer: coarse){
+  .field{ font-size:16px; }
+  .btn-sm{ min-height:40px; }
+  .chip{ min-height:38px; }
+  .btn:active, .chip:active, .room-card:active, .choice:active, .lib-star:active{ transform:scale(.95); }
+}
+@media (hover: none){
+  .btn:hover{ transform:none; box-shadow:none; }
+  .room-card:hover, .proj:hover, .choice:hover{ transform:none; }
 }
 @media (max-width: 520px){ .brand-name{ font-size:1.12rem; } .savedot b{ display:none; } }
 main.main{ padding-block:28px 64px; }
 
 /* --- page transitions --- */
 .page{ animation:pageIn .55s cubic-bezier(.2,.7,.2,1) both; }
-@keyframes pageIn{ from{ opacity:.0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+@keyframes pageIn{ from{ transform:translateY(10px); } to{ transform:none; } }
 .fade-in{ animation:fadeIn .5s ease both; }
-@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes fadeIn{ from{ opacity:.35; } to{ opacity:1; } }
 
 /* --- type --- */
 .eyebrow{ font:800 .72rem var(--font-body); letter-spacing:.14em; text-transform:uppercase; color:var(--sage-deep); }
@@ -15149,6 +15174,7 @@ function App() {
     }))
   }), [bridgeVal]);
   const [showData, setShowData] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const {
     status
   } = useContext(StoreCtx);
@@ -15241,7 +15267,7 @@ function App() {
   }), /*#__PURE__*/React.createElement("div", {
     className: "top-tools"
   }, route !== 'home' ? /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-ghost btn-sm",
+    className: "btn btn-ghost btn-sm hide-phone",
     onClick: () => go('home')
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "House",
@@ -15307,7 +15333,77 @@ function App() {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "ShieldCheck",
     size: 14
-  }), "Your data stays on this device"))), /*#__PURE__*/React.createElement(StickerPopHost, null), showData ? /*#__PURE__*/React.createElement(DataPanel, {
+  }), "Your data stays on this device"))), (() => {
+    /* phone tab bar: the four places she goes most, and everything else under More */
+    const TABS = [['home', 'Home', 'House'], ['library', 'Books', 'Library'], ['quiet', 'Quiet', 'Flower2'], ['studio', 'Paint', 'Palette']];
+    const tabIds = TABS.map(t => t[0]);
+    const moreItems = navItems.filter(n => !tabIds.includes(n.id));
+    const onMore = !tabIds.includes(route);
+    const toneOf = {
+      atelier: 'var(--sage)', study: 'var(--sky)', lab: 'var(--sky)', keep: 'var(--rose)', stickers: 'var(--peach)'
+    };
+    return /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("nav", {
+      className: "tabbar",
+      "aria-label": "Main"
+    }, TABS.map(([id, label, icon]) => /*#__PURE__*/React.createElement("button", {
+      key: id,
+      "aria-current": route === id ? 'page' : undefined,
+      onClick: () => {
+        setShowMore(false);
+        go(id);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "tab-ic"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: icon,
+      size: 22
+    })), label)), /*#__PURE__*/React.createElement("button", {
+      "aria-current": onMore ? 'page' : undefined,
+      "aria-expanded": showMore,
+      onClick: () => setShowMore(true)
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "tab-ic"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "LayoutGrid",
+      size: 22
+    })), "More")), showMore ? /*#__PURE__*/React.createElement(Modal, {
+      title: "Everywhere else",
+      onClose: () => setShowMore(false)
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "more-grid"
+    }, moreItems.map(n => /*#__PURE__*/React.createElement("button", {
+      key: n.id,
+      className: "more-item",
+      "aria-current": route === n.id ? 'page' : undefined,
+      onClick: () => {
+        setShowMore(false);
+        go(n.id);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "ri",
+      style: {
+        background: toneOf[n.id] || 'var(--lavender)'
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: n.icon,
+      size: 20
+    })), n.label)), /*#__PURE__*/React.createElement("button", {
+      className: "more-item",
+      onClick: () => {
+        setShowMore(false);
+        setShowData(true);
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "ri",
+      style: {
+        background: 'var(--surface-3)',
+        color: 'var(--ink)'
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "SlidersHorizontal",
+      size: 20
+    })), "Settings & backups"))) : null);
+  })(), /*#__PURE__*/React.createElement(StickerPopHost, null), showData ? /*#__PURE__*/React.createElement(DataPanel, {
     onClose: () => setShowData(false),
     theme: theme,
     setTheme: v => setPrefs(p => ({
