@@ -1,6 +1,6 @@
 // Zara's Little Universe service worker.
 // Bump VERSION whenever you change index.html so phones pick up the update.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest',

@@ -505,6 +505,11 @@ html.calm .pop{ animation:popFade 4.6s ease both !important; } html.calm .pop im
 .lib-because{ font:800 .68rem var(--font-body); letter-spacing:.1em; text-transform:uppercase; color:var(--rose-deep); }
 .lib-because i{ text-transform:none; letter-spacing:0; font:italic 600 .88rem var(--font-display); }
 .lib-why{ margin:4px 0 0; font-size:.92rem; }
+.lib-about{ margin-top:8px; }
+.lib-about p{ margin:2px 0 0; font-size:.93rem; line-height:1.55; }
+.lib-about.like{ padding:10px 12px; border-radius:12px; background:var(--rose-tint); }
+.lib-label{ display:block; font:800 .66rem var(--font-body); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+.lib-about.like .lib-label{ color:var(--rose-deep); }
 .lib-fact{ margin:8px 0 4px; padding:10px 12px; border-radius:12px; background:var(--sky-tint); font-size:.88rem; line-height:1.5; }
 .lib-fact-k{ display:block; font-family:var(--font-hand); font-size:1.15rem; font-weight:600; color:var(--sky-deep); line-height:1.1; margin-bottom:2px; }
 .lib-links{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
@@ -14515,55 +14520,55 @@ const LIB_FAVS = [{
   fact: 'It is barely fiction. In 1849 Dostoevsky was led out to be shot, reprieved at the last second, and sent to a Siberian prison camp for four years. Tolstoy said he knew no better book in all of modern Russian literature.'
 }];
 const LIB_PICKS = [{
-  id: 'notes', title: 'Notes from Underground', author: 'Fyodor Dostoevsky', year: 1864, because: 'crime',
+  id: 'notes', summary: 'An unnamed, bitter retired official in St Petersburg rants from his “underground” against reason, progress and everyone he knows, then remembers the humiliating episodes of his youth, including one cruel night with a young woman named Liza.', title: 'Notes from Underground', author: 'Fyodor Dostoevsky', year: 1864, because: 'crime',
   pdf: 'https://archive.org/download/dostoyevsky_fyodor_1821-1881_notes_from_the_undergound/dostoyevsky_fyodor_1821-1881_notes_from_the_undergound.pdf',
   gut: 'https://www.gutenberg.org/ebooks/600',
   why: 'A warm-up for Raskolnikov’s head: one bitter man arguing with himself, and with you.',
   fact: 'It opens with “I am a sick man… I am a spiteful man,” and is often called the first existentialist novel. Short enough to finish in a weekend.'
 }, {
-  id: 'karamazov', title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', year: 1880, because: 'crime',
+  id: 'karamazov', summary: 'The sons of the coarse, greedy Fyodor Karamazov (passionate Dmitri, brilliant doubting Ivan and gentle Alyosha) clash over money, love and faith. Then their father is murdered, and one of the brothers is put on trial.', title: 'The Brothers Karamazov', author: 'Fyodor Dostoevsky', year: 1880, because: 'crime',
   pdf: 'https://archive.org/download/brotherskaramaz00dost/brotherskaramaz00dost.pdf',
   gut: 'https://www.gutenberg.org/ebooks/28054',
   why: 'Another murder, another trial, and the big questions about guilt and faith, this time in one family.',
   fact: 'His last novel, finished four months before he died. Freud called it the most magnificent novel ever written.'
 }, {
-  id: 'idiot', title: 'The Idiot', author: 'Fyodor Dostoevsky', year: 1869, because: 'house',
+  id: 'idiot', summary: 'Prince Myshkin, trusting, kind and epileptic, comes home to Russia from a Swiss sanatorium and is pulled into St Petersburg society, where he is torn between the wounded, magnetic Nastasya Filippovna and the proud young Aglaya.', title: 'The Idiot', author: 'Fyodor Dostoevsky', year: 1869, because: 'house',
   pdf: 'https://archive.org/download/idiot00whisgoog/idiot00whisgoog.pdf',
   gut: 'https://www.gutenberg.org/ebooks/2638',
   why: 'Dostoevsky’s own mock execution turns up again here, retold by the gentle Prince Myshkin.',
   fact: 'Dostoevsky said he wanted to draw “a positively beautiful man.” He gave Myshkin his own epilepsy.'
 }, {
-  id: 'demons', title: 'Demons', author: 'Fyodor Dostoevsky', year: 1872, because: 'fathers',
+  id: 'demons', summary: 'In a sleepy provincial town, a small revolutionary cell led by the scheming Pyotr Verkhovensky stirs up chaos, while the charismatic, hollow Nikolai Stavrogin drifts through everyone’s lives and leaves damage behind.', title: 'Demons', author: 'Fyodor Dostoevsky', year: 1872, because: 'fathers',
   pdf: 'https://archive.org/download/possessednovelin00dost/possessednovelin00dost.pdf',
   gut: 'https://www.gutenberg.org/ebooks/8117',
   why: 'What happens when Bazarov’s nihilism goes too far. Dostoevsky’s answer to Turgenev’s generation.',
   fact: 'Inspired by a real 1869 murder by Sergey Nechayev’s radical cell. Older editions call it The Possessed or The Devils, so look for all three titles when thrifting.'
 }, {
-  id: 'hero', title: 'A Hero of Our Time', author: 'Mikhail Lermontov', year: 1840, because: 'fathers',
+  id: 'hero', summary: 'Five linked stories, told by different narrators and finally by Pechorin’s own journal, follow a bored, brilliant young officer in the Caucasus as he toys with love, friendship and danger.', title: 'A Hero of Our Time', author: 'Mikhail Lermontov', year: 1840, because: 'fathers',
   pdf: 'https://archive.org/download/heroofourtime00lerm_1/heroofourtime00lerm_1.pdf',
   gut: 'https://www.gutenberg.org/ebooks/913',
   why: 'Pechorin is a cool, clever young man who believes in nothing. Bazarov’s older cousin, in a way.',
   fact: 'Often called the first Russian psychological novel. Lermontov was killed in a duel at 26, a year after it came out.'
 }, {
-  id: 'oblomov', title: 'Oblomov', author: 'Ivan Goncharov', year: 1859, because: 'fathers',
+  id: 'oblomov', summary: 'Ilya Oblomov, a gentle but hopelessly idle landowner, can barely get off his sofa, until his energetic friend Stolz and the lively Olga try to pull him back into the world.', title: 'Oblomov', author: 'Ivan Goncharov', year: 1859, because: 'fathers',
   pdf: 'https://archive.org/download/cu31924026662092/cu31924026662092.pdf',
   gut: 'https://www.gutenberg.org/ebooks/54700',
   why: 'The same old gentry world as Fathers and Sons, seen through its laziest and sweetest landowner.',
   fact: 'Oblomov spends the whole first part of the book without getting off his sofa. Russians still say “oblomovshchina” for that kind of dreamy inertia.'
 }, {
-  id: 'anna', title: 'Anna Karenina', author: 'Leo Tolstoy', year: 1878, because: 'fathers',
+  id: 'anna', summary: 'Anna, married to a cold government official, falls into a passionate affair with Count Vronsky that society won’t forgive, while the earnest landowner Levin looks for meaning in farming, love and faith.', title: 'Anna Karenina', author: 'Leo Tolstoy', year: 1878, because: 'fathers',
   pdf: 'https://archive.org/download/annakareninatols00tolsiala/annakareninatols00tolsiala.pdf',
   gut: 'https://www.gutenberg.org/ebooks/1399',
   why: 'Turgenev’s country estates and family arguments, on Tolstoy’s huge scale.',
   fact: 'It opens with “All happy families are alike; each unhappy family is unhappy in its own way.”'
 }, {
-  id: 'souls', title: 'Dead Souls', author: 'Nikolai Gogol', year: 1842, because: 'house',
+  id: 'souls', summary: 'The smooth-talking Chichikov tours the Russian provinces buying up dead serfs who still count on the tax rolls, and meets a gallery of absurd, greedy landowners along the way.', title: 'Dead Souls', author: 'Nikolai Gogol', year: 1842, because: 'house',
   pdf: 'https://archive.org/download/deadsouls00gogouoft/deadsouls00gogouoft.pdf',
   gut: 'https://www.gutenberg.org/ebooks/1081',
   why: 'Another long tour of provincial Russia, but funny. A swindler buys up dead serfs who still exist on paper.',
   fact: 'Pushkin is said to have given Gogol the idea. Gogol later burned most of the second volume, days before he died.'
 }, {
-  id: 'white', title: 'White Nights', author: 'Fyodor Dostoevsky', year: 1848, because: 'house',
+  id: 'white', summary: 'A lonely young dreamer in St Petersburg meets Nastenka on a bridge one summer night. Over four nights she tells him about the lover she is waiting for, and he falls for her.', title: 'White Nights', author: 'Fyodor Dostoevsky', year: 1848, because: 'house',
   pdf: 'https://archive.org/download/whitenightsother00dostiala/whitenightsother00dostiala.pdf',
   gut: 'https://www.gutenberg.org/ebooks/36034',
   why: 'Dostoevsky before prison: young, lonely and romantic. A nice contrast to The House of the Dead.',
@@ -14607,7 +14612,7 @@ ${no}
 Recommend 8 novels or story collections she has not read. Weight the books she rated 4 or 5 most heavily, and steer away from anything like the books she rated 1 or 2. Mix close matches with two or three bolder picks from other countries or eras. Prefer books that are easy to find used. Only recommend real, published books, and keep every fact accurate.
 
 Reply with only a JSON array of 8 objects, each shaped like this:
-{"title": "...", "author": "...", "year": 1866, "because": "exact title of the book from her read list it most relates to", "why": "one sentence, at most 25 words, speaking to her as you", "fact": "one or two sentences with a true, surprising fact about the book or how it was written", "publicDomain": false}
+{"title": "...", "author": "...", "year": 1866, "because": "exact title of the book from her read list it most relates to", "summary": "two or three sentences on what the book is about, with no spoilers of the ending", "why": "one or two sentences, at most 40 words, speaking to her as you, on why she will like it given the books she loved", "fact": "one or two sentences with a true, surprising fact about the book or how it was written", "publicDomain": false}
 "year" is the year of first publication. "publicDomain" is true only if the book was first published before 1929.`;
 }
 function LibCover({
@@ -14689,6 +14694,19 @@ function LibStars({
     className: cx('lib-star', n <= (value || 0) && 'on'),
     onClick: () => onChange(value === n ? 0 : n)
   }, "★")));
+}
+function LibAbout({
+  book
+}) {
+  return LE(Fragment, null, book.summary ? LE("div", {
+    className: "lib-about"
+  }, LE("span", {
+    className: "lib-label"
+  }, "What it\u2019s about"), LE("p", null, book.summary)) : null, book.why ? LE("div", {
+    className: "lib-about like"
+  }, LE("span", {
+    className: "lib-label"
+  }, "Why you\u2019ll like it"), LE("p", null, book.why)) : null);
 }
 function LibFact({
   text
@@ -14839,9 +14857,7 @@ function LibDeck({
     className: "lib-title"
   }, bk.title), LE("div", {
     className: "lib-meta"
-  }, bk.author, bk.year ? ` \xB7 ${bk.year}` : ''), bk.why ? LE("p", {
-    className: "lib-why"
-  }, bk.why) : null, LE(LibFact, { text: bk.fact }), LE(LibLinks, { book: bk }));
+  }, bk.author, bk.year ? ` \xB7 ${bk.year}` : ''), LE(LibAbout, { book: bk }), LE(LibFact, { text: bk.fact }), LE(LibLinks, { book: bk }));
   return LE("div", {
     className: "lib-deck"
   }, LE("p", {
@@ -14925,6 +14941,7 @@ function Library() {
           author: String(x.author || '').trim(),
           year,
           because: String(x.because || ''),
+          summary: String(x.summary || ''),
           why: String(x.why || ''),
           fact: String(x.fact || ''),
           publicDomain: x.publicDomain === true && !!year && year < 1929
@@ -15009,7 +15026,7 @@ function Library() {
   useEffect(() => {
     if (state !== 'ready' || autoDone.current) return;
     autoDone.current = true;
-    if (!recs || recs.sig !== sig) run(false);
+    if (!recs || recs.sig !== sig || (recs.items || []).some(x => !x.summary)) run(false);
   }, [state]);
   const [deck, setDeck] = useState(() => {
     try {
@@ -15176,9 +15193,9 @@ function Library() {
     className: "lib-title"
   }, b.title), LE("div", {
     className: "lib-meta"
-  }, b.author, b.year ? ` \xB7 ${b.year}` : ''), b.why ? LE("p", {
-    className: "lib-why"
-  }, b.why) : null)), LE(LibFact, {
+  }, b.author, b.year ? ` \xB7 ${b.year}` : ''))), LE(LibAbout, {
+    book: b
+  }), LE(LibFact, {
     text: b.fact
   }), LE(LibLinks, {
     book: b

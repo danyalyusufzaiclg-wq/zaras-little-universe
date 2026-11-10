@@ -14,6 +14,7 @@ const Pick = z.object({
   author: z.string(),
   year: z.number().int(),
   because: z.string(),
+  summary: z.string(),
   why: z.string(),
   fact: z.string(),
   publicDomain: z.boolean(),
@@ -66,7 +67,7 @@ ${no}
 
 Recommend 8 novels or story collections she has not read. Weight the books she rated 4 or 5 most heavily, and steer away from anything like the books she rated 1 or 2. Mix close matches with two or three bolder picks from other countries or eras. Prefer books that are easy to find used. Only recommend real, published books by their real authors, and keep every fact accurate; if you are not sure of a fact, give a plainer one you are sure of.
 
-For each pick: "year" is the year of first publication; "because" is the exact title of the book from her read list it most relates to; "why" is one sentence of at most 25 words, speaking to her as "you"; "fact" is one or two sentences with a true, surprising fact about the book or how it was written; "publicDomain" is true only if the book was first published before 1929.`;
+For each pick: "year" is the year of first publication; "because" is the exact title of the book from her read list it most relates to; "summary" is two or three sentences on what the book is about, with no spoilers of the ending; "why" is one or two sentences of at most 40 words, speaking to her as "you", on why she will like it given the books she loved; "fact" is one or two sentences with a true, surprising fact about the book or how it was written; "publicDomain" is true only if the book was first published before 1929.`;
 }
 
 export default {
