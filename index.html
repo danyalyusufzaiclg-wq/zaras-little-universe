@@ -105,7 +105,8 @@ a{ color:var(--sky-deep); text-underline-offset:3px; }
   .tabbar button:active .tab-ic{ transform:scale(.88); }
   main.main{ padding-top:18px; padding-bottom:24px; }
   html.shell-on, html.shell-on body{ height:100%; overflow:hidden; }
-  html.shell-on .app-scroll{ position:fixed; left:0; right:0; top:env(safe-area-inset-top,0px); bottom:calc(64px + env(safe-area-inset-bottom,0px)); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; }
+  html.shell-on .topbar{ position:fixed; left:0; right:0; top:env(safe-area-inset-top,0px); background:var(--bg); -webkit-backdrop-filter:none; backdrop-filter:none; transform:translateZ(0); }
+  html.shell-on .app-scroll{ position:fixed; left:0; right:0; top:calc(env(safe-area-inset-top,0px) + var(--top-h, 52px)); bottom:calc(64px + env(safe-area-inset-bottom,0px)); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; }
   html.shell-on.typing .app-scroll{ bottom:0; }
   .toastbox{ bottom:calc(86px + env(safe-area-inset-bottom,0px)); }
   .hide-phone{ display:none !important; }
@@ -15934,7 +15935,21 @@ function App() {
   const [showMore, setShowMore] = useState(false);
   useEffect(() => {
     document.documentElement.classList.add('shell-on');
-    return () => document.documentElement.classList.remove('shell-on');
+    /* the scroll area starts right under the top bar, whatever its height */
+    const bar = document.getElementById('topbar');
+    const fit = () => {
+      if (bar) document.documentElement.style.setProperty('--top-h', bar.offsetHeight + 'px');
+    };
+    fit();
+    let ro = null;
+    try {
+      ro = new ResizeObserver(fit);
+      if (bar) ro.observe(bar);
+    } catch (e) {/* */}
+    return () => {
+      document.documentElement.classList.remove('shell-on');
+      if (ro) ro.disconnect();
+    };
   }, []);
   /* hide the tab bar while the keyboard is up, so it doesn't ride up above it */
   useEffect(() => {
@@ -16032,10 +16047,8 @@ function App() {
       const m = document.getElementById('main');
       if (m) m.focus();
     }
-  }, "Skip to content"), /*#__PURE__*/React.createElement("div", {
-    className: "app-scroll",
-    id: "app-scroll"
-  }, /*#__PURE__*/React.createElement("header", {
+  }, "Skip to content"), /*#__PURE__*/React.createElement("header", {
+    id: "topbar",
     className: "topbar shell"
   }, /*#__PURE__*/React.createElement("div", {
     className: "wrap topbar-in"
@@ -16081,7 +16094,10 @@ function App() {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "SlidersHorizontal",
     size: 18
-  }))))), /*#__PURE__*/React.createElement("main", {
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "app-scroll",
+    id: "app-scroll"
+  }, /*#__PURE__*/React.createElement("main", {
     id: "main",
     tabIndex: -1,
     className: "main shell",
