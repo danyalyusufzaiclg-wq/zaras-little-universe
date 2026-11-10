@@ -99,7 +99,8 @@ export default {
         messages: [{ role: "user", content: prompt(input) }],
       });
       if (response.stop_reason === "refusal" || !response.parsed_output) return reply(502, { error: "no_picks" });
-      return reply(200, { picks: response.parsed_output.picks.slice(0, 8) });
+      console.log("usage", JSON.stringify(response.usage));
+      return reply(200, { picks: response.parsed_output.picks.slice(0, 8), usage: { input: response.usage.input_tokens, output: response.usage.output_tokens } });
     } catch (err) {
       if (err instanceof Anthropic.RateLimitError) return reply(429, { error: "busy" });
       if (err instanceof Anthropic.APIError) {
