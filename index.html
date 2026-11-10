@@ -548,6 +548,26 @@ html.calm .pop{ animation:popFade 4.6s ease both !important; } html.calm .pop im
 .lib-pull{ display:flex; align-items:center; justify-content:center; gap:8px; overflow:hidden; font:700 .85rem var(--font-body); color:var(--rose-deep); }
 @media (pointer: coarse){ .lib-star{ font-size:1.6rem; padding:4px 5px; } }
 .lib-add{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(min(100%, 200px), 1fr)); align-items:end; margin-bottom:18px; }
+/* --- welcome + passcode --- */
+.lock-wrap{ min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding-block:max(28px, env(safe-area-inset-top,0px)) max(28px, env(safe-area-inset-bottom,0px)); padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); }
+.lock-card{ width:min(100%, 440px); padding:26px 20px; border-radius:var(--r-xl); background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-lift); }
+.lock-points{ display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.lock-points li{ display:flex; gap:12px; align-items:flex-start; font-size:.98rem; line-height:1.5; }
+.lock-ic{ flex:none; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:var(--rose-tint); color:var(--rose-deep); }
+.lock-badge{ width:52px; height:52px; margin:0 auto 12px; border-radius:50%; display:grid; place-items:center; background:var(--rose-tint); color:var(--rose-deep); }
+.pin{ display:grid; justify-items:center; }
+.pin-dots{ display:flex; gap:16px; justify-content:center; margin:20px 0 6px; }
+.pin-dot{ width:15px; height:15px; border-radius:50%; border:2px solid var(--rose-deep); transition:background .15s, transform .15s; }
+.pin-dot.on{ background:var(--rose-deep); transform:scale(1.08); }
+.pin-dots.shake{ animation:pinShake .42s; }
+@keyframes pinShake{ 0%,100%{ transform:none; } 20%{ transform:translateX(-10px); } 40%{ transform:translateX(9px); } 60%{ transform:translateX(-6px); } 80%{ transform:translateX(4px); } }
+.pin-msg{ min-height:1.6em; margin:0 0 10px; text-align:center; color:var(--rose-deep); font-weight:700; }
+.pin-keys{ display:grid; grid-template-columns:repeat(3, 72px); gap:14px 22px; justify-content:center; }
+.pin-key{ width:72px; height:72px; border-radius:50%; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); font:600 1.6rem var(--font-body); font-variant-numeric:tabular-nums; display:grid; place-items:center; cursor:pointer; transition:transform .12s, background .12s; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.pin-key:active{ transform:scale(.9); background:var(--rose-tint); }
+.pin-key.ghost{ background:none; border-color:transparent; }
+.pin-key:disabled{ opacity:.4; }
+@media (max-width:360px){ .pin-keys{ grid-template-columns:repeat(3, 64px); gap:12px 18px; } .pin-key{ width:64px; height:64px; } }
 /* --- reduced motion --- */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
@@ -14368,7 +14388,7 @@ function DataPanel({
     style: {
       margin: 0
     }
-  }, "If your device is set to reduce motion, animations are already kept to a minimum. Calm motion also stops the stickers from wiggling.")), /*#__PURE__*/React.createElement("section", {
+  }, "If your device is set to reduce motion, animations are already kept to a minimum. Calm motion also stops the stickers from wiggling.")), /*#__PURE__*/React.createElement(LockSettings, null), /*#__PURE__*/React.createElement("section", {
     className: "grid gap-2 soft",
     style: {
       padding: 16
@@ -15309,6 +15329,412 @@ function Library() {
   }, "Your shelf and ratings are saved in this browser. Personal picks are made by Claude when this page can reach it; otherwise you’ll see a hand-picked list. Free PDFs are scans of old public-domain editions on the Internet Archive, eBooks come from Project Gutenberg, and “Borrow free” opens Open Library, which lends newer books."));
 }
 
+/* ---------------- welcome + passcode lock ----------------
+   The passcode never leaves this device: only a salted PBKDF2 hash is kept, next to her other things. */
+const LOCK_ITER = 150000;
+const lockSupported = () => {
+  try {
+    return !!(window.crypto && crypto.subtle && crypto.getRandomValues);
+  } catch (e) {
+    return false;
+  }
+};
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function hashPin(pin, salt, iter = LOCK_ITER) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({
+    name: 'PBKDF2', salt: unb64(salt), iterations: iter, hash: 'SHA-256'
+  }, key, 256);
+  return b64(bits);
+}
+async function makeSecret(pin) {
+  const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+  return {
+    salt, hash: await hashPin(pin, salt), len: pin.length, iter: LOCK_ITER, setAt: Date.now()
+  };
+}
+async function checkPin(pin, sec) {
+  return (await hashPin(pin, sec.salt, sec.iter || LOCK_ITER)) === sec.hash;
+}
+function PinPad({
+  len,
+  title,
+  sub,
+  errorText,
+  errorTick,
+  busy,
+  disabled,
+  onComplete
+}) {
+  const [v, setV] = useState('');
+  const [shake, setShake] = useState(false);
+  useEffect(() => {
+    if (!errorTick) return;
+    setV('');
+    setShake(true);
+    const t = setTimeout(() => setShake(false), 450);
+    return () => clearTimeout(t);
+  }, [errorTick]);
+  useEffect(() => {
+    setV('');
+  }, [len]);
+  const press = d => {
+    if (busy || disabled || v.length >= len) return;
+    const n = v + d;
+    setV(n);
+    if (n.length === len) setTimeout(() => onComplete(n), 140);
+  };
+  const del = () => {
+    if (!busy) setV(x => x.slice(0, -1));
+  };
+  useEffect(() => {
+    const k = e => {
+      if (/^[0-9]$/.test(e.key)) press(e.key);else if (e.key === 'Backspace') del();
+    };
+    document.addEventListener('keydown', k);
+    return () => document.removeEventListener('keydown', k);
+  });
+  return LE("div", {
+    className: "pin"
+  }, title ? LE("h2", {
+    className: "h2",
+    style: { margin: 0, textAlign: 'center' }
+  }, title) : null, sub ? LE("p", {
+    className: "small muted",
+    style: { margin: '6px 0 0', textAlign: 'center' }
+  }, sub) : null, LE("div", {
+    className: cx('pin-dots', shake && 'shake'),
+    role: "status",
+    "aria-label": `${v.length} of ${len} digits entered`
+  }, Array.from({
+    length: len
+  }).map((_, i) => LE("span", {
+    key: i,
+    className: cx('pin-dot', i < v.length && 'on')
+  }))), LE("p", {
+    className: "small pin-msg",
+    "aria-live": "assertive"
+  }, busy ? 'Checking…' : errorText || ' '), LE("div", {
+    className: "pin-keys"
+  }, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((d, i) => d === '' ? LE("span", {
+    key: i
+  }) : d === 'del' ? LE("button", {
+    key: i,
+    type: "button",
+    className: "pin-key ghost",
+    onClick: del,
+    "aria-label": "Delete last digit",
+    disabled: !v.length || busy
+  }, LE(Icon, { name: "Delete", size: 24 })) : LE("button", {
+    key: i,
+    type: "button",
+    className: "pin-key",
+    onClick: () => press(d),
+    disabled: busy || disabled
+  }, d))));
+}
+function PasscodeSetup({
+  onDone,
+  onCancel,
+  cancelLabel = 'Cancel'
+}) {
+  const [len, setLen] = useState(4);
+  const [first, setFirst] = useState(null);
+  const [err, setErr] = useState({ text: '', tick: 0 });
+  const [busy, setBusy] = useState(false);
+  const fail = text => setErr(e => ({ text, tick: e.tick + 1 }));
+  return LE("div", {
+    className: "grid gap-4",
+    style: { justifyItems: 'center' }
+  }, LE(PinPad, {
+    key: (first ? 'confirm-' : 'choose-') + len,
+    len: len,
+    title: first ? 'Type it once more' : 'Choose a passcode',
+    sub: first ? 'Just to be sure.' : `${len} digits you’ll remember.`,
+    errorText: err.text,
+    errorTick: err.tick,
+    busy: busy,
+    onComplete: async pin => {
+      if (!first) {
+        setFirst(pin);
+        setErr(e => ({ text: '', tick: e.tick }));
+        return;
+      }
+      if (pin !== first) {
+        setFirst(null);
+        fail('Those didn’t match. Choose it again.');
+        return;
+      }
+      setBusy(true);
+      try {
+        onDone(await makeSecret(pin));
+      } catch (e) {
+        setBusy(false);
+        setFirst(null);
+        fail('That didn’t save. Try again.');
+      }
+    }
+  }), !first ? LE("button", {
+    type: "button",
+    className: "btn btn-ghost btn-sm",
+    onClick: () => setLen(len === 4 ? 6 : 4)
+  }, len === 4 ? 'Use 6 digits instead' : 'Use 4 digits instead') : LE("button", {
+    type: "button",
+    className: "btn btn-ghost btn-sm",
+    onClick: () => setFirst(null)
+  }, "Start over"), onCancel ? LE("button", {
+    type: "button",
+    className: "btn btn-ghost btn-sm",
+    onClick: onCancel
+  }, cancelLabel) : null, LE("p", {
+    className: "tiny muted",
+    style: { maxWidth: '34ch', textAlign: 'center', margin: 0 }
+  }, "If you forget it, nobody can recover it. You could only erase the app and start fresh."));
+}
+function WelcomeScreen({
+  onDone
+}) {
+  const [step, setStep] = useState('hello');
+  const canLock = lockSupported();
+  return LE("div", {
+    className: "lock-wrap"
+  }, LE("div", {
+    className: "lock-card fade-in"
+  }, step === 'hello' ? LE(Fragment, null, LE(Sprig, {
+    width: 130,
+    tone: "rose",
+    style: { margin: '0 auto 8px', display: 'block' }
+  }), LE("h1", {
+    className: "h1",
+    style: { textAlign: 'center', margin: '0 0 6px' }
+  }, "This little universe is yours, Zara"), LE("p", {
+    className: "lede",
+    style: { textAlign: 'center', margin: '0 auto 18px' }
+  }, "Before you start, a few things worth knowing."), LE("ul", {
+    className: "lock-points"
+  }, [['Smartphone', 'Everything you paint, write, save and rate stays on this phone. None of it is uploaded anywhere.'], ['EyeOff', 'Nobody else can see it, including the person who made this for you.'], ['LockKeyhole', 'You can add a passcode, so anyone who picks up your phone can’t look through it.']].map(([ic, t]) => LE("li", {
+    key: ic
+  }, LE("span", {
+    className: "lock-ic"
+  }, LE(Icon, { name: ic, size: 18 })), LE("span", null, t)))), LE("div", {
+    className: "grid gap-2",
+    style: { marginTop: 18 }
+  }, canLock ? LE("button", {
+    className: "btn btn-rose",
+    onClick: () => setStep('set')
+  }, LE(Icon, { name: "LockKeyhole", size: 16 }), "Set a passcode") : null, LE("button", {
+    className: cx('btn', canLock && 'btn-ghost'),
+    onClick: () => onDone(null)
+  }, canLock ? 'Not now' : 'Start'))) : LE(PasscodeSetup, {
+    onDone: sec => onDone(sec),
+    onCancel: () => setStep('hello'),
+    cancelLabel: "Back"
+  })));
+}
+function UnlockScreen({
+  sec,
+  onUnlock,
+  onErase
+}) {
+  const [err, setErr] = useState({ text: '', tick: 0 });
+  const [busy, setBusy] = useState(false);
+  const [tries, setTries] = useState(0);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+  const [forgot, setForgot] = useState(false);
+  const [sure, setSure] = useState(false);
+  useEffect(() => {
+    if (waitUntil <= now) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [waitUntil, now]);
+  const waiting = waitUntil > now;
+  return LE("div", {
+    className: "lock-wrap"
+  }, LE("div", {
+    className: "lock-card"
+  }, !forgot ? LE(Fragment, null, LE("div", {
+    className: "lock-badge",
+    "aria-hidden": "true"
+  }, LE(Icon, { name: "LockKeyhole", size: 22 })), LE(PinPad, {
+    len: sec.len || 4,
+    title: "Welcome back, Zara",
+    sub: "Enter your passcode.",
+    errorText: waiting ? `Too many tries. Wait ${Math.ceil((waitUntil - now) / 1000)} seconds.` : err.text,
+    errorTick: err.tick,
+    busy: busy,
+    disabled: waiting,
+    onComplete: async pin => {
+      setBusy(true);
+      let ok = false;
+      try {
+        ok = await checkPin(pin, sec);
+      } catch (e) {/* */}
+      setBusy(false);
+      if (ok) {
+        onUnlock();
+        return;
+      }
+      const n = tries + 1;
+      setTries(n);
+      if (n % 5 === 0) {
+        setWaitUntil(Date.now() + 30000);
+        setNow(Date.now());
+      }
+      setErr(e => ({ text: 'That’s not it. Try again.', tick: e.tick + 1 }));
+    }
+  }), LE("button", {
+    type: "button",
+    className: "btn btn-ghost btn-sm",
+    style: { margin: '10px auto 0', display: 'flex' },
+    onClick: () => setForgot(true)
+  }, "Forgot passcode?")) : LE("div", {
+    className: "grid gap-3",
+    style: { textAlign: 'center' }
+  }, LE("h2", {
+    className: "h2",
+    style: { margin: 0 }
+  }, "Forgot your passcode?"), LE("p", {
+    className: "small",
+    style: { margin: 0 }
+  }, "The passcode can’t be recovered, by you or by anyone else. That’s what keeps your things private."), LE("p", {
+    className: "small muted",
+    style: { margin: 0 }
+  }, "You can erase everything on this phone and start fresh. If you saved a backup file before, you can import it afterwards."), !sure ? LE("button", {
+    className: "btn btn-danger",
+    onClick: () => setSure(true)
+  }, LE(Icon, { name: "Trash2", size: 16 }), "Erase and start fresh") : LE("div", {
+    className: "grid gap-2"
+  }, LE("p", {
+    className: "small",
+    style: { margin: 0, fontWeight: 700 }
+  }, "This deletes every painting, note, book and keepsake on this phone."), LE("button", {
+    className: "btn btn-danger solid",
+    onClick: onErase
+  }, "Yes, erase everything"), LE("button", {
+    className: "btn",
+    onClick: () => setSure(false),
+    autoFocus: true
+  }, "Keep my things")), LE("button", {
+    className: "btn btn-ghost btn-sm",
+    onClick: () => {
+      setForgot(false);
+      setSure(false);
+    }
+  }, "I remember it"))));
+}
+function LockGate({
+  children
+}) {
+  const [sec, setSec] = useStored('security', null);
+  const [welcomed, setWelcomed] = useStored('welcome.done', false);
+  const {
+    replaceAll
+  } = useContext(StoreCtx);
+  const [unlocked, setUnlocked] = useState(false);
+  const hiddenAt = useRef(0);
+  useEffect(() => {
+    /* lock again after 5 minutes away */
+    const v = () => {
+      if (document.visibilityState === 'hidden') hiddenAt.current = Date.now();else if (hiddenAt.current && Date.now() - hiddenAt.current > 5 * 60000) setUnlocked(false);
+    };
+    const now = () => setUnlocked(false);
+    document.addEventListener('visibilitychange', v);
+    window.addEventListener('zara-lock-now', now);
+    return () => {
+      document.removeEventListener('visibilitychange', v);
+      window.removeEventListener('zara-lock-now', now);
+    };
+  }, []);
+  if (!welcomed) return LE(WelcomeScreen, {
+    onDone: s => {
+      if (s) setSec(s);
+      setWelcomed(true);
+      setUnlocked(true);
+    }
+  });
+  if (sec && sec.hash && !unlocked && lockSupported()) return LE(UnlockScreen, {
+    sec: sec,
+    onUnlock: () => setUnlocked(true),
+    onErase: async () => {
+      await replaceAll({});
+      setUnlocked(false);
+    }
+  });
+  return children;
+}
+function LockSettings() {
+  const [sec, setSec] = useStored('security', null);
+  const {
+    toast
+  } = useUi();
+  const [mode, setMode] = useState(null); // null | verify-off | verify-change | set
+  const [err, setErr] = useState({ text: '', tick: 0 });
+  const [busy, setBusy] = useState(false);
+  if (!lockSupported()) return null;
+  const on = !!(sec && sec.hash);
+  return LE("section", {
+    className: "grid gap-2"
+  }, LE("h3", {
+    className: "h3",
+    style: { margin: 0 }
+  }, "Passcode lock"), mode === 'set' ? LE(PasscodeSetup, {
+    onDone: s => {
+      setSec(s);
+      setMode(null);
+      toast('Passcode saved');
+    },
+    onCancel: () => setMode(null)
+  }) : mode ? LE("div", {
+    className: "grid gap-2",
+    style: { justifyItems: 'center' }
+  }, LE(PinPad, {
+    len: sec.len || 4,
+    title: "Enter your current passcode",
+    errorText: err.text,
+    errorTick: err.tick,
+    busy: busy,
+    onComplete: async pin => {
+      setBusy(true);
+      let ok = false;
+      try {
+        ok = await checkPin(pin, sec);
+      } catch (e) {/* */}
+      setBusy(false);
+      if (!ok) {
+        setErr(e => ({ text: 'That’s not it. Try again.', tick: e.tick + 1 }));
+        return;
+      }
+      if (mode === 'verify-off') {
+        setSec(null);
+        setMode(null);
+        toast('Passcode turned off');
+      } else setMode('set');
+    }
+  }), LE("button", {
+    className: "btn btn-ghost btn-sm",
+    onClick: () => setMode(null)
+  }, "Cancel")) : LE(Fragment, null, LE("p", {
+    className: "small muted",
+    style: { margin: 0 }
+  }, on ? 'On. The app asks for your passcode when it opens, and again after 5 minutes away.' : 'Off. Anyone holding your phone can open the app.'), LE("div", {
+    className: "flex gap-2 flex-wrap"
+  }, on ? LE(Fragment, null, LE("button", {
+    className: "btn btn-sm",
+    onClick: () => window.dispatchEvent(new Event('zara-lock-now'))
+  }, LE(Icon, { name: "LockKeyhole", size: 14 }), "Lock now"), LE("button", {
+    className: "btn btn-sm",
+    onClick: () => setMode('verify-change')
+  }, "Change passcode"), LE("button", {
+    className: "btn btn-sm btn-ghost btn-danger",
+    onClick: () => setMode('verify-off')
+  }, "Turn off")) : LE("button", {
+    className: "btn btn-sm btn-rose",
+    onClick: () => setMode('set')
+  }, LE(Icon, { name: "LockKeyhole", size: 14 }), "Add a passcode"))));
+}
+
 /* 09-app.jsx */
 /* ---------------- shell ---------------- */
 const NAV = [{
@@ -15761,7 +16187,7 @@ function Gate({
   return children;
 }
 function Root() {
-  return /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(UiProvider, null, /*#__PURE__*/React.createElement(Gate, null, /*#__PURE__*/React.createElement(StickerProvider, null, /*#__PURE__*/React.createElement(TimerProvider, null, /*#__PURE__*/React.createElement(App, null))))));
+  return /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(UiProvider, null, /*#__PURE__*/React.createElement(Gate, null, /*#__PURE__*/React.createElement(LockGate, null, /*#__PURE__*/React.createElement(StickerProvider, null, /*#__PURE__*/React.createElement(TimerProvider, null, /*#__PURE__*/React.createElement(App, null)))))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(Root, null));
 </script>
