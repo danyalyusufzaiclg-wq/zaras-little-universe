@@ -294,6 +294,7 @@ input[type="checkbox"]{ accent-color:var(--sage-deep); width:18px; height:18px; 
 .memcard .face{ position:absolute; inset:0; border-radius:15px; display:grid; place-items:center; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
 .memcard .back{ background:repeating-linear-gradient(45deg, var(--sage) 0 6px, var(--sage-tint) 6px 16px); border:1px solid var(--line); }
 .memcard .front{ transform:rotateY(180deg); background:var(--rose-tint); color:var(--rose-deep); }
+.memcard .front .memphoto{ width:88%; height:88%; object-fit:contain; pointer-events:none; -webkit-user-drag:none; filter:drop-shadow(0 0 1px #fff) drop-shadow(0 3px 5px rgba(0,0,0,.18)); }
 .memcard.done .front{ background:var(--sage-tint); color:var(--sage-deep); }
 .support{ border:1px dashed var(--line-strong); border-radius:var(--r-lg); }
 .support summary{ cursor:pointer; padding:14px 18px; font-weight:700; color:var(--ink-soft); list-style:none; display:flex; gap:8px; align-items:center; }
@@ -5788,19 +5789,31 @@ function Constellation() {
   }), "Keep it"))));
 }
 const MATCH_SYMBOLS = [['Flower2', 'flower'], ['Leaf', 'leaf'], ['Feather', 'feather'], ['Moon', 'moon'], ['Bird', 'bird'], ['Shell', 'shell']];
+/* her photo stickers, one of each (the repeat shots are left out); six are dealt each round */
+const MATCH_PHOTOS = ['portrait_front', 'tiny_goat', 'general_outfit', 'blue_portrait', 'leaning_portrait', 'resting_pose', 'upside_down', 'purple_smile', 'playful_pose'];
 function Matching() {
-  const deal = () => shuffle(MATCH_SYMBOLS.flatMap(([s, n]) => [{
-    id: uid(),
-    s,
-    n
-  }, {
-    id: uid(),
-    s,
-    n
-  }]));
+  const {
+    available: photos
+  } = useStickers();
+  const deal = () => {
+    const kinds = photos ? shuffle(MATCH_PHOTOS).slice(0, MATCH_SYMBOLS.length).map(id => [id, (stickerById(id) || {}).label || 'a sticker', true]) : MATCH_SYMBOLS.map(([s, n]) => [s, n, false]);
+    return shuffle(kinds.flatMap(([s, n, photo]) => [{
+      id: uid(), s, n, photo
+    }, {
+      id: uid(), s, n, photo
+    }]));
+  };
   const [deck, setDeck] = useState(deal);
   const [up, setUp] = useState([]);
   const [done, setDone] = useState([]);
+  useEffect(() => {
+    /* the stickers finish loading after the game first appears: swap them in */
+    if (photos && deck.length && !deck[0].photo) {
+      setDeck(deal());
+      setUp([]);
+      setDone([]);
+    }
+  }, [photos]);
   const flip = c => {
     if (up.length === 2 || up.includes(c.id) || done.includes(c.s)) return;
     const next = [...up, c.id];
@@ -5857,7 +5870,12 @@ function Matching() {
       className: "face back"
     }), /*#__PURE__*/React.createElement("span", {
       className: "face front"
-    }, /*#__PURE__*/React.createElement(Icon, {
+    }, c.photo ? /*#__PURE__*/React.createElement("img", {
+      className: "memphoto",
+      src: stickerFile(c.s),
+      alt: "",
+      draggable: false
+    }) : /*#__PURE__*/React.createElement(Icon, {
       name: c.s,
       size: 30
     }))));
