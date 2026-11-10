@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#FAF8F3"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Zara"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script>window.ZARA_PICKS_URL="https://zara-books.whoop-mcp-worker.workers.dev/picks";</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#FAF8F3"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Zara"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Zara's Little Universe</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14721,6 +14721,43 @@ function Library() {
         s = null;
       }
       if (!alive) return;
+      /* the home-screen app has no claude.ai viewer: ask the app's own book-picks server instead */
+      if (!s && window.ZARA_PICKS_URL) s = {
+        json: async (_prompt, opts) => {
+          let r;
+          try {
+            r = await fetch(window.ZARA_PICKS_URL, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json'
+              },
+              body: JSON.stringify({
+                shelf: shelfRef.current.map(b => ({
+                  title: b.title,
+                  author: b.author,
+                  status: b.status,
+                  rating: b.rating || 0,
+                  fav: !!b.fav
+                })),
+                dismissed: dismissedRef.current
+              }),
+              signal: opts && opts.signal
+            });
+          } catch (e) {
+            throw {
+              code: e && e.name === 'AbortError' ? 'cancelled' : 'upstream_error'
+            };
+          }
+          if (r.status === 429) throw {
+            code: 'rate_limited'
+          };
+          if (!r.ok) throw {
+            code: 'upstream_error'
+          };
+          const j = await r.json();
+          return j.picks;
+        }
+      };
       sampleRef.current = s;
       setState(s ? 'ready' : 'off');
     })();
@@ -14795,7 +14832,7 @@ function Library() {
     className: "small muted",
     style: { margin: '4px 0 0' },
     "aria-live": "polite"
-  }, state === 'thinking' ? 'Claude is reading your shelf and choosing books… this can take up to a minute.' : fromClaude.length ? `Chosen by Claude from the ${readCount} book${readCount === 1 ? '' : 's'} you’ve read, ${new Date(recs.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.` : state === 'off' ? 'Hand-picked from your favourites. Personal picks from Claude only work in the claude.ai version for now.' : 'Hand-picked from your favourites to start.')), state !== 'off' && state !== 'starting' ? LE("div", {
+  }, state === 'thinking' ? 'Claude is reading your shelf and choosing books… this can take up to a minute.' : fromClaude.length ? `Chosen by Claude from the ${readCount} book${readCount === 1 ? '' : 's'} you’ve read, ${new Date(recs.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.` : state === 'off' ? 'Hand-picked from your favourites. Personal picks need an internet connection. These are hand-picked for now.' : 'Hand-picked from your favourites to start.')), state !== 'off' && state !== 'starting' ? LE("div", {
     className: "flex gap-2"
   }, state === 'thinking' ? LE("button", {
     className: "btn btn-ghost btn-sm",

@@ -38,9 +38,10 @@ rep("""    const dl = await getDownloads();
     }
     if (!dl) {""")
 rep("Personal picks need Claude, which isn’t available in this view.",
-    "Personal picks from Claude only work in the claude.ai version for now.")
+    "Personal picks need an internet connection. These are hand-picked for now.")
 
 HEAD = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<script>window.ZARA_PICKS_URL="https://zara-books.whoop-mcp-worker.workers.dev/picks";</script>'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="theme-color" content="#FAF8F3">'
         '<meta name="apple-mobile-web-app-capable" content="yes">'

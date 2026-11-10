@@ -1,0 +1,10 @@
+{
+  "name": "zara-books",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "kv_namespaces": [
+    { "binding": "LIMITS", "id": "d5ea2f150ca64982a9e48c633fc663fb" }
+  ]
+}
