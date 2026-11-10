@@ -226,7 +226,13 @@ input[type="checkbox"]{ accent-color:var(--sage-deep); width:18px; height:18px; 
 .hot .tagtxt{ font:700 15px var(--font-body); fill:var(--ink); }
 .hot .tagbg{ fill:var(--surface); stroke:var(--line-strong); transition:fill .3s; }
 .hot:hover .tagbg, .hot:focus-visible .tagbg{ fill:var(--sage-tint); }
-@media (max-width:640px){ .scene .tag{ display:none; } }
+@media (max-width:640px){
+  .scene-card{ overflow-x:auto; overflow-y:hidden; scrollbar-width:none; overscroll-behavior-x:contain; }
+  .scene-card::-webkit-scrollbar{ display:none; }
+  .scene{ width:880px; max-width:none; }
+}
+.show-phone{ display:none; }
+@media (max-width:640px){ .show-phone{ display:inline; } }
 .twinkle{ animation:twinkle 3.2s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
 @keyframes twinkle{ 0%,100%{ opacity:.35; transform:scale(.8);} 50%{ opacity:1; transform:scale(1.1);} }
 .float{ animation:float 6s ease-in-out infinite; transform-box:fill-box; }
@@ -513,6 +519,26 @@ html.calm .pop{ animation:popFade 4.6s ease both !important; } html.calm .pop im
 .lib-star.on{ color:var(--gold); }
 .lib-star:hover{ transform:scale(1.15); }
 .lib-sel{ min-height:34px; padding:4px 8px; font-size:.82rem; width:auto; max-width:100%; }
+.lib-deck{ max-width:440px; margin:0 auto; }
+.lib-deck-stack{ display:grid; }
+.lib-deck-stack > *{ grid-area:1 / 1; }
+.lib-swipe{ position:relative; touch-action:pan-y; cursor:grab; -webkit-user-select:none; user-select:none; will-change:transform; }
+.lib-swipe.under{ transform:scale(.94) translateY(16px); opacity:.55; pointer-events:none; }
+.lib-deck-cover{ display:flex; justify-content:center; margin:4px 0 10px; }
+.lib-deck-cover .lib-cover.big{ width:132px; }
+.lib-stamp{ position:absolute; top:20px; z-index:2; padding:4px 12px; border:3px solid currentColor; border-radius:10px; background:var(--surface); font:800 1rem var(--font-body); letter-spacing:.08em; text-transform:uppercase; pointer-events:none; }
+.lib-stamp.want{ left:16px; color:var(--sage-deep); transform:rotate(-12deg); }
+.lib-stamp.no{ right:16px; color:var(--rose-deep); transform:rotate(12deg); }
+.lib-deck-actions{ display:flex; justify-content:center; align-items:flex-start; gap:14px; margin-top:18px; }
+.lib-round{ width:54px; height:54px; border-radius:50%; display:grid; place-items:center; margin:0 auto; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); box-shadow:var(--shadow); cursor:pointer; transition:transform .15s; }
+.lib-round.big{ width:66px; height:66px; }
+.lib-round.no{ color:var(--rose-deep); }
+.lib-round.want{ background:var(--sage); color:var(--on-accent); border-color:transparent; }
+.lib-round:active{ transform:scale(.88); }
+.lib-round:disabled{ opacity:.45; }
+.lib-round-l{ display:block; margin-top:5px; font:700 .68rem var(--font-body); color:var(--ink-soft); }
+.lib-pull{ display:flex; align-items:center; justify-content:center; gap:8px; overflow:hidden; font:700 .85rem var(--font-body); color:var(--rose-deep); }
+@media (pointer: coarse){ .lib-star{ font-size:1.6rem; padding:4px 5px; } }
 .lib-add{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(min(100%, 200px), 1fr)); align-items:end; margin-bottom:18px; }
 /* --- reduced motion --- */
 @media (prefers-reduced-motion: reduce){
@@ -2658,7 +2684,9 @@ function Home({
     style: {
       textAlign: 'center'
     }
-  }, "Tap anything in the room, or pick a door below."), showNote ? /*#__PURE__*/React.createElement("div", {
+  }, "Tap anything in the room, or pick a door below.", /*#__PURE__*/React.createElement("span", {
+    className: "show-phone"
+  }, " Swipe sideways to look around.")), showNote ? /*#__PURE__*/React.createElement("div", {
     className: "letter fade-in",
     style: {
       maxWidth: 640,
@@ -14652,6 +14680,107 @@ function LibAddForm({
     onClick: onClose
   }, "Cancel")));
 }
+/* swipeable pick cards: right = thrift list, left = not for me */
+function LibDeck({
+  picks,
+  onAct,
+  thinking
+}) {
+  const [drag, setDrag] = useState({ x: 0, y: 0, on: false });
+  const [leaving, setLeaving] = useState(null);
+  const start = useRef(null);
+  const b = picks[0],
+    next = picks[1];
+  const reduce = prefersReducedMotion() || document.documentElement.classList.contains('calm');
+  useEffect(() => {
+    setDrag({ x: 0, y: 0, on: false });
+    setLeaving(null);
+  }, [b && b.title]);
+  const finish = (dir, kind) => {
+    if (leaving || !b) return;
+    if (reduce || !dir) {
+      onAct(b, kind);
+      return;
+    }
+    setLeaving(dir);
+    setTimeout(() => onAct(b, kind), 240);
+  };
+  const down = e => {
+    if (e.target.closest('a,button,select,input')) return;
+    start.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {/* */}
+    setDrag({ x: 0, y: 0, on: true });
+  };
+  const move = e => {
+    if (!start.current || e.pointerId !== start.current.id) return;
+    setDrag({ x: e.clientX - start.current.x, y: (e.clientY - start.current.y) * 0.25, on: true });
+  };
+  const up = () => {
+    if (!start.current) return;
+    start.current = null;
+    if (drag.x > 110) finish('right', 'want');else if (drag.x < -110) finish('left', 'no');else setDrag({ x: 0, y: 0, on: false });
+  };
+  const cancel = () => {
+    start.current = null;
+    setDrag({ x: 0, y: 0, on: false });
+  };
+  if (!b) return null;
+  const tf = leaving ? `translateX(${leaving === 'right' ? 130 : -130}vw) rotate(${leaving === 'right' ? 24 : -24}deg)` : `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x / 18}deg)`;
+  const card = (bk, top) => LE("article", {
+    key: libNorm(bk.title) + (top ? '-top' : '-under'),
+    className: cx('lib-card lib-swipe', !top && 'under'),
+    "aria-hidden": top ? undefined : true,
+    onPointerDown: top ? down : undefined,
+    onPointerMove: top ? move : undefined,
+    onPointerUp: top ? up : undefined,
+    onPointerCancel: top ? cancel : undefined,
+    style: top ? {
+      transform: tf,
+      transition: drag.on ? 'none' : 'transform .25s cubic-bezier(.2,.8,.2,1)'
+    } : null
+  }, top ? LE(Fragment, null, LE("span", {
+    className: "lib-stamp want",
+    style: { opacity: clamp(drag.x / 110, 0, 1) }
+  }, "Want it"), LE("span", {
+    className: "lib-stamp no",
+    style: { opacity: clamp(-drag.x / 110, 0, 1) }
+  }, "Not for me")) : null, LE("div", {
+    className: "lib-deck-cover"
+  }, LE(LibCover, { title: bk.title, author: bk.author, big: true })), bk.because ? LE("span", {
+    className: "lib-because"
+  }, "Because you loved ", LE("i", null, bk.because)) : null, LE("h3", {
+    className: "lib-title"
+  }, bk.title), LE("div", {
+    className: "lib-meta"
+  }, bk.author, bk.year ? ` \xB7 ${bk.year}` : ''), bk.why ? LE("p", {
+    className: "lib-why"
+  }, bk.why) : null, LE(LibFact, { text: bk.fact }), LE(LibLinks, { book: bk }));
+  return LE("div", {
+    className: "lib-deck"
+  }, LE("p", {
+    className: "tiny muted",
+    style: { textAlign: 'center', margin: '0 0 10px' }
+  }, `${picks.length} to go \xB7 swipe right to save it, left to skip`), LE("div", {
+    className: cx('lib-deck-stack', thinking && 'lib-dim')
+  }, next ? card(next, false) : null, card(b, true)), LE("div", {
+    className: "lib-deck-actions",
+    role: "group",
+    "aria-label": `What to do with ${b.title}`
+  }, [['no', 'X', 'Not for me', 'left'], ['read', 'Check', 'Read it', null], ['have', 'ShoppingBag', 'Thrifted', null], ['want', 'Bookmark', 'Want it', 'right']].map(([k, ic, label, dir]) => LE("div", {
+    key: k,
+    style: { textAlign: 'center' }
+  }, LE("button", {
+    type: "button",
+    className: cx('lib-round', k, (k === 'no' || k === 'want') && 'big'),
+    "aria-label": label,
+    disabled: thinking || !!leaving,
+    onClick: () => finish(dir, k)
+  }, LE(Icon, { name: ic, size: k === 'no' || k === 'want' ? 26 : 20 })), LE("span", {
+    className: "lib-round-l"
+  }, label)))));
+}
 function Library() {
   const [shelf, setShelf] = useStored('library.shelf', LIB_SEED);
   const [oldStatus, setOldStatus] = useStored('libraryStatus', null);
@@ -14797,6 +14926,45 @@ function Library() {
     autoDone.current = true;
     if (!recs || recs.sig !== sig) run(false);
   }, [state]);
+  const [deck, setDeck] = useState(() => {
+    try {
+      return window.matchMedia('(max-width: 760px)').matches;
+    } catch (e) {
+      return false;
+    }
+  });
+  const [pull, setPull] = useState(0);
+  /* pull down at the top of the page for new picks (the home-screen app has no reload button) */
+  useEffect(() => {
+    if (state !== 'ready' && state !== 'error') return;
+    let y0 = null,
+      d = 0;
+    const ts = e => {
+      y0 = window.scrollY <= 0 && e.touches.length === 1 ? e.touches[0].clientY : null;
+      d = 0;
+    };
+    const tm = e => {
+      if (y0 == null) return;
+      d = Math.max(0, e.touches[0].clientY - y0);
+      setPull(window.scrollY <= 0 ? Math.min(d, 130) : 0);
+    };
+    const te = () => {
+      if (y0 != null && d > 90 && window.scrollY <= 0) run(true);
+      y0 = null;
+      d = 0;
+      setPull(0);
+    };
+    window.addEventListener('touchstart', ts, { passive: true });
+    window.addEventListener('touchmove', tm, { passive: true });
+    window.addEventListener('touchend', te);
+    window.addEventListener('touchcancel', te);
+    return () => {
+      window.removeEventListener('touchstart', ts);
+      window.removeEventListener('touchmove', tm);
+      window.removeEventListener('touchend', te);
+      window.removeEventListener('touchcancel', te);
+    };
+  }, [state]);
   const has = t => shelf.some(b => libNorm(b.title) === libNorm(t));
   const addBook = (b, status) => {
     if (has(b.title)) {
@@ -14824,9 +14992,23 @@ function Library() {
   const counts = Object.fromEntries(LIB_STATUS.map(([v]) => [v, shelf.filter(b => b.status === v).length]));
   const shownShelf = shelf.filter(b => filter === 'all' || b.status === filter).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0) || (b.status === 'read' ? 1 : 0) - (a.status === 'read' ? 1 : 0) || (b.rating || 0) - (a.rating || 0) || (b.added || 0) - (a.added || 0));
   const readCount = counts.read;
+  const act = (b, k) => {
+    if (k === 'no') {
+      setDismissed(d => [...d, b.title]);
+      toast('Got it. Fewer like that.');
+    } else addBook(b, k);
+  };
   return LE("div", {
     className: "page"
-  }, LE(Section, {
+  }, pull > 0 ? LE("div", {
+    className: "lib-pull",
+    style: { height: Math.round(pull * 0.55) },
+    "aria-hidden": "true"
+  }, LE(Icon, {
+    name: "RefreshCw",
+    size: 18,
+    style: { transform: `rotate(${pull * 2.5}deg)` }
+  }), pull > 90 ? 'Let go for new picks' : 'Pull down for new picks') : null, LE(Section, {
     eyebrow: "The Reading Room",
     tone: "rose",
     title: "Zara’s Library",
@@ -14869,7 +15051,15 @@ function Library() {
     className: "btn btn-rose",
     onClick: () => run(true),
     disabled: state === 'thinking'
-  }, LE(Icon, { name: state === 'thinking' ? 'Loader' : 'Sparkles', size: 16 }), state === 'thinking' ? 'Choosing…' : 'New picks')) : null), stale && state === 'ready' ? LE("div", {
+  }, LE(Icon, { name: state === 'thinking' ? 'Loader' : 'Sparkles', size: 16 }), state === 'thinking' ? 'Choosing…' : 'New picks')) : null, LE("div", {
+    className: "flex gap-1",
+    role: "group",
+    "aria-label": "How to show picks"
+  }, LE("button", {
+    type: "button", className: "chip rose", "aria-pressed": deck, onClick: () => setDeck(true)
+  }, LE(Icon, { name: "Layers", size: 13 }), "Swipe"), LE("button", {
+    type: "button", className: "chip rose", "aria-pressed": !deck, onClick: () => setDeck(false)
+  }, LE(Icon, { name: "List", size: 13 }), "List"))), stale && state === 'ready' ? LE("div", {
     className: "lib-note fade-in"
   }, LE(Icon, { name: "RefreshCw", size: 16 }), LE("span", null, "Your shelf changed since these were chosen."), LE("button", {
     className: "btn btn-sm",
@@ -14879,7 +15069,11 @@ function Library() {
   }, LE(Icon, { name: "Info", size: 16 }), LE("span", null, errMsg), LE("button", {
     className: "btn btn-sm",
     onClick: () => run(true)
-  }, "Try again")) : null, picks.length ? LE("div", {
+  }, "Try again")) : null, picks.length && deck ? LE(LibDeck, {
+    picks: picks,
+    onAct: act,
+    thinking: state === 'thinking'
+  }) : picks.length ? LE("div", {
     className: cx('lib-grid', state === 'thinking' && 'lib-dim')
   }, picks.map(b => LE("article", {
     key: libNorm(b.title),
